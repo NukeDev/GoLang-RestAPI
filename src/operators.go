@@ -1,6 +1,11 @@
 package main
 
 import (
+	"crypto/md5"
+	"crypto/sha1"
+	"crypto/sha256"
+	"crypto/sha512"
+	"encoding/hex"
 	"encoding/json"
 	"log"
 	"math/rand"
@@ -138,4 +143,20 @@ func RandStringBytesMaskImpr(n int) string {
 	}
 
 	return string(b)
+}
+
+func GenerateHashes(input string) map[string]string {
+
+	_md5 := md5.Sum([]byte(input))
+	_sha1 := sha1.Sum([]byte(input))
+	_sha256 := sha256.Sum256([]byte(input))
+	_sha512 := sha512.Sum512([]byte(input))
+
+	result := map[string]string{}
+	result["md5"] = hex.EncodeToString(_md5[:])
+	result["sha1"] = hex.EncodeToString(_sha1[:])
+	result["sha256"] = hex.EncodeToString(_sha256[:])
+	result["sha512"] = hex.EncodeToString(_sha512[:])
+
+	return result
 }

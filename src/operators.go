@@ -71,7 +71,6 @@ func CheckLoginUser(email string, password string) (map[string]interface{}, bool
 				log.Panic(err)
 			} else {
 				days := time.Now().Sub(dbDate)
-				log.Println(fmtDuration(days))
 				if 22-days.Hours() <= 0 {
 					key := GenerateAuthKey(user)
 					_, status := UpdateNewAuthkey(user, key)

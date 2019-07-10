@@ -10,12 +10,17 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 	"github.com/thoas/stats"
 	"github.com/urfave/negroni"
 	"golang.org/x/crypto/bcrypt"
 )
 
 var middleware = stats.New()
+
+const (
+	timeFormat = "2006-01-02 15:04:05"
+)
 
 // HandleRoot / (GET)
 func HandleRoot(w http.ResponseWriter, r *http.Request) {
@@ -26,10 +31,11 @@ func HandleRoot(w http.ResponseWriter, r *http.Request) {
 
 	t := time.Now() //Current Request DateTime
 
-	obj["ip_address"] = r.RemoteAddr               //Client remote address
-	obj["date_hash"] = MD5(t.Format(time.RFC3339)) //MD5 HASH Current DateTime
+	obj["website"] = "https://learninglabs.it"
+	obj["info"] = "API service"
+	obj["date_hash"] = MD5(t.Format(timeFormat)) //MD5 HASH Current DateTime
 
-	response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusOK, DATA: obj} //Populate Response Object
+	response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusOK, DATA: obj} //Populate Response Object
 
 	respondWithJSON(w, r, http.StatusOK, response) //Send response
 
@@ -47,7 +53,7 @@ func HandleStats(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		obj["error"] = err
-		response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusBadRequest, DATA: obj} //Populate Response Object
+		response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusBadRequest, DATA: obj} //Populate Response Object
 		respondWithJSON(w, r, http.StatusBadRequest, response)
 		return //Send response
 	}
@@ -60,30 +66,30 @@ func HandleStats(w http.ResponseWriter, r *http.Request) {
 		auth, localKey := CheckAuth(key)
 		if auth == 0 {
 			obj["error"] = "Wrong Key!"
-			response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusUnauthorized, DATA: obj} //Populate Response Object
+			response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusUnauthorized, DATA: obj} //Populate Response Object
 			respondWithJSON(w, r, http.StatusUnauthorized, response)
 			return
 		} else if auth == 2 {
 			obj["error"] = "Key out of Date!"
 			obj["key"] = localKey.AUTHKEY
-			response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusUnauthorized, DATA: obj} //Populate Response Object
+			response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusUnauthorized, DATA: obj} //Populate Response Object
 			respondWithJSON(w, r, http.StatusUnauthorized, response)
 			return
 		} else if auth == 1 && localKey.TYPE == 1 {
 			stats := middleware.Data()
-			response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusOK, DATA: stats} //Populate Response Object
-			respondWithJSON(w, r, http.StatusOK, response)                                                                                   //Send response
+			response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusOK, DATA: stats} //Populate Response Object
+			respondWithJSON(w, r, http.StatusOK, response)                                                                                 //Send response
 		} else {
 			obj["error"] = "Not enough permissions!"
 			obj["key"] = localKey.AUTHKEY
-			response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusForbidden, DATA: obj} //Populate Response Object
+			response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusForbidden, DATA: obj} //Populate Response Object
 			respondWithJSON(w, r, http.StatusForbidden, response)
 			return
 		}
 
 	} else {
 		obj["error"] = "Key format not valid!"
-		response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusUnauthorized, DATA: obj} //Populate Response Object
+		response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusUnauthorized, DATA: obj} //Populate Response Object
 		respondWithJSON(w, r, http.StatusUnauthorized, response)
 		return
 	}
@@ -102,7 +108,7 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		obj["error"] = err
-		response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusBadRequest, DATA: obj} //Populate Response Object
+		response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusBadRequest, DATA: obj} //Populate Response Object
 		respondWithJSON(w, r, http.StatusBadRequest, response)
 		return //Send response
 	}
@@ -126,19 +132,19 @@ func HandleRegister(w http.ResponseWriter, r *http.Request) {
 		if inserted == false {
 			obj["error"] = "Error while registering account " + localUser.EMAIL + "!"
 			obj["info"] = status
-			response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusUnprocessableEntity, DATA: obj} //Populate Response Object
+			response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusUnprocessableEntity, DATA: obj} //Populate Response Object
 			respondWithJSON(w, r, http.StatusUnprocessableEntity, response)
 			return
 		} else {
 			obj["info"] = "User " + localUser.EMAIL + " successfully registered!"
-			response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusCreated, DATA: obj} //Populate Response Object
+			response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusCreated, DATA: obj} //Populate Response Object
 			respondWithJSON(w, r, http.StatusCreated, response)
 			return
 		}
 
 	} else {
 		obj["error"] = "User values format not valid!"
-		response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusConflict, DATA: obj} //Populate Response Object
+		response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusConflict, DATA: obj} //Populate Response Object
 		respondWithJSON(w, r, http.StatusConflict, response)
 		return
 	}
@@ -157,7 +163,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		obj["error"] = err
-		response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusBadRequest, DATA: obj} //Populate Response Object
+		response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusBadRequest, DATA: obj} //Populate Response Object
 		respondWithJSON(w, r, http.StatusBadRequest, response)
 		return //Send response
 	}
@@ -172,19 +178,19 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 		respo, logged, _ := CheckLoginUser(EMAIL, PASSWORD)
 		if logged == false {
 			respo["error"] = "Error while authorizing account " + EMAIL + "!"
-			response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusUnauthorized, DATA: respo} //Populate Response Object
+			response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusUnauthorized, DATA: respo} //Populate Response Object
 			respondWithJSON(w, r, http.StatusUnauthorized, response)
 			return
 		} else {
 			respo["info"] = "User " + EMAIL + " successfully authorized!"
-			response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusCreated, DATA: respo} //Populate Response Object
+			response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusCreated, DATA: respo} //Populate Response Object
 			respondWithJSON(w, r, http.StatusCreated, response)
 			return
 		}
 
 	} else {
 		obj["error"] = "User values format not valid!"
-		response := JSONResponse{METHOD: r.Method, DATE: t.Format(time.RFC3339), PATH: r.RequestURI, STATUS: http.StatusConflict, DATA: obj} //Populate Response Object
+		response := JSONResponse{METHOD: r.Method, DATE: t.Format(timeFormat), PATH: r.RequestURI, STATUS: http.StatusConflict, DATA: obj} //Populate Response Object
 		respondWithJSON(w, r, http.StatusConflict, response)
 		return
 	}
@@ -199,6 +205,11 @@ func main() {
 		log.Fatal(err)
 	}
 
+	c := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"POST", "GET", "OPTIONS", "PUT", "DELETE"},
+		AllowedHeaders: []string{"Accept", "content-type", "Content-Length", "Accept-Encoding", "X-CSRF-Token", "Authorization"},
+	})
 	//Getting vars from .env file
 	port := os.Getenv("PORT")
 
@@ -215,6 +226,8 @@ func main() {
 	n := negroni.Classic()
 	//Stats middleware
 	n.Use(middleware)
+
+	n.Use(c)
 	//Router
 	n.UseHandler(router)
 
